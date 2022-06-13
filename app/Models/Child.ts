@@ -1,35 +1,51 @@
-import { DateTime } from 'luxon'
-import { BaseModel, column, ManyToMany, manyToMany } from '@ioc:Adonis/Lucid/Orm'
-import MiniGame from './MiniGame'
+import { DateTime } from "luxon";
+import {
+  BaseModel,
+  column,
+  ManyToMany,
+  manyToMany,
+} from "@ioc:Adonis/Lucid/Orm";
+import MiniGame from "./MiniGame";
+import Achievement from "./Achievement";
 
 export default class Child extends BaseModel {
-  
   @column({ isPrimary: true })
-  public id: number
+  public id: number;
 
   @column()
-  public userId: number
+  public userId: number;
 
   @column()
-  public name: string
+  public name: string;
 
   @column()
-  public birth_date: string
+  public birth_date: string;
 
   @column.dateTime({ autoCreate: true })
-  public createdAt: DateTime
+  public createdAt: DateTime;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  public updatedAt: DateTime
+  public updatedAt: DateTime;
 
   @manyToMany(() => MiniGame, {
-    pivotTable: 'children_mini_games',
-    localKey: 'id',
-    pivotForeignKey: 'child_id',
-    relatedKey: 'id',
-    pivotRelatedForeignKey: 'mini_game_id',
+    pivotTable: "children_mini_games",
+    localKey: "id",
+    pivotForeignKey: "child_id",
+    relatedKey: "id",
+    pivotRelatedForeignKey: "mini_game_id",
     pivotTimestamps: true,
-    pivotColumns: ['play_time', 'last_access']
+    pivotColumns: ["play_time", "last_access"],
   })
-  public miniGames: ManyToMany<typeof MiniGame>
+  public miniGames: ManyToMany<typeof MiniGame>;
+
+  @manyToMany(() => Achievement, {
+    pivotTable: "children_achievements",
+    localKey: "id",
+    pivotForeignKey: "child_id",
+    relatedKey: "id",
+    pivotRelatedForeignKey: "achievement_id",
+    pivotTimestamps: true,
+    pivotColumns: ["mini_game_id"],
+  })
+  public achievement: ManyToMany<typeof Achievement>;
 }

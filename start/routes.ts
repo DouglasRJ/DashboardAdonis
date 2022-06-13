@@ -18,20 +18,19 @@
 |
 */
 
-import Route from '@ioc:Adonis/Core/Route'
+import Route from "@ioc:Adonis/Core/Route";
 
 Route.group(() => {
-  Route.get('/', () => {
-    return { greeting: 'Hello world in JSON' }
-  })
+  Route.get("/", () => {
+    return { greeting: "Hello world in JSON" };
+  });
 
-  Route.resource('users', 'UsersController').apiOnly()
-  Route.post('users/change_password', 'UsersController.changePassword')
-  Route.post('login', 'LoginController.login')
-  Route.resource('child/', 'ChildrenController').apiOnly()
-  Route.post('child/playMiniGame/:childId', 'ChildrenController.playMiniGame')
-  Route.post('child/:childId/achievement', 'ChildrenController.addAchievement')
-  Route.resource('miniGame', 'MiniGameController').apiOnly()
-  Route.resource('achievement/', 'AchievementController').apiOnly()
-
-}).prefix('/api')
+  Route.resource("users", "UsersController").apiOnly();
+  Route.post("users/change_password", "UsersController.changePassword");
+  Route.post("login", "LoginController.login");
+  Route.resource("child/", "ChildrenController").apiOnly();
+  Route.post("child/playMiniGame/:childId", "ChildrenController.playMiniGame");
+  Route.post("child/:childId/achievement", "ChildrenController.addAchievement");
+  Route.resource("miniGame", "MiniGameController").apiOnly();
+  Route.resource("achievement/", "AchievementController").apiOnly();
+}).prefix("/api");

@@ -1,7 +1,7 @@
 import BaseSchema from "@ioc:Adonis/Lucid/Schema";
 
 export default class extends BaseSchema {
-  protected tableName = "children_mini_games";
+  protected tableName = "children_achievements";
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
@@ -11,16 +11,13 @@ export default class extends BaseSchema {
         .unsigned()
         .references("children.id")
         .onDelete("CASCADE")
-        .index("children_id");
       table
-        .integer("mini_game_id")
+        .integer("achievement_id")
         .unsigned()
-        .references("mini_games.id")
+        .references("achievements.id")
         .onDelete("CASCADE")
-        .index("mini_game_id");
-      table.unique(["child_id", "mini_game_id"]);
-      table.float("play_time");
-      table.timestamp("last_access", { useTz: true });
+        .index("achievement_id");
+      table.unique(["child_id", "achievement_id"]);
       /**
        * Uses timestamptz for PostgreSQL and DATETIME2 for MSSQL
        */
