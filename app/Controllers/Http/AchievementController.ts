@@ -5,61 +5,56 @@ import CreateAchievementValidator from "App/Validators/CreateAchievementValidato
 
 export default class AchievementController {
   async index() {
-    try {
-      const achievements = await Achievement.all();
-      return achievements;
-    } catch (error) {
-      return error;
-    }
+    const achievements = await Achievement.all();
+    return achievements;
   }
 
   async show({ params }: HttpContextContract) {
-    try {
-      const achievementId = params.id;
-      const achievement = await Achievement.findByOrFail("id", achievementId);
-      return achievement;
-    } catch (error) {
-      return error;
+    const achievement = await Achievement.findBy("id", params.id);
+    if (!achievement) {
+      throw new Error("Achievement not found");
     }
+    return achievement;
   }
 
   async store({ request }: HttpContextContract) {
-    try {
-      const { miniGameId } = request.all();
-      await MiniGame.findByOrFail("id", miniGameId);
-      const data = await request.validate(CreateAchievementValidator);
-      const achievement = await Achievement.create(data);
-      return achievement;
-    } catch (error) {
-      return error;
+    const { miniGameId } = request.only(["miniGameId"]);
+    if (!(await MiniGame.findBy("id", miniGameId))) {
+      throw new Error("MiniGame not found");
     }
+    const data = await request.validate(CreateAchievementValidator);
+    const achievement = await Achievement.create(data);
+    return achievement;
   }
 
-  async destroy({ params, request, response }: HttpContextContract) {
-    try {
-      const achievementId = params.id;
-      const achievement = await Achievement.findByOrFail("id", achievementId);
-      await achievement.delete();
-      return achievement;
-    } catch (error) {
-      return error;
+  async destroy({ params }: HttpContextContract) {
+    const achievement = await Achievement.findBy("id", params.id);
+    if (!achievement) {
+      throw new Error("Achievement not found");
     }
+    await achievement?.delete();
+    return achievement;
   }
 
-  async update({ params, request, response }: HttpContextContract) {
-    try {
-      const achievementId = params.id;
-      const achievement = await Achievement.findByOrFail("id", achievementId);
-      let { name, description, points } = request.all();
-      name == null ? (name = achievement.name) : name;
-      description == null
-        ? (description = achievement.description)
-        : description;
-      points == null ? (points = achievement.points) : points;
-      await achievement.merge({ name, description, points }).save();
-      return achievement;
-    } catch (error) {
-      return error;
+  async update({ params, request }: HttpContextContract) {
+    const achievement = await Achievement.findBy("id", params.id);
+    if (!achievement) {
+      throw new Error("Achievement not found");
     }
+    let { name, description, points } = request.only([
+      "name",
+      "description",
+      "points",
+    ]);
+    if (!name && !description && !points) {
+      throw new Error("Name or description or points are required");
+    }
+    name == null ? (name = achievement?.name) : name;
+    description == null
+      ? (description = achievement?.description)
+      : description;
+    points == null ? (points = achievement?.points) : points;
+    await achievement?.merge({ name, description, points }).save();
+    return achievement;
   }
 }

@@ -26,10 +26,12 @@ export default class CreateUserValidator {
   public schema = schema.create({
     username: schema.string(),
     email: schema.string([
-      rules.email()
+      rules.email(),
+      rules.unique({ table: 'users', column: 'email' }),
       ]),
     password: schema.string([
-      rules.minLength(6)
+      rules.minLength(6),
+      rules.confirmed()
       ])
   })
 
@@ -45,10 +47,6 @@ export default class CreateUserValidator {
    *
    */
   public messages: CustomMessages = {
-    'username.required': 'Username is required',
-    'email.required': 'Email is required',
-    'email.email': 'Email is invalid',
-    'password.required': 'Password is required',
-    'password.minLength': 'Password must be at least 6 characters',
+    'email.unique': 'Email already exists',
   }
 }

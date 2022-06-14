@@ -1,77 +1,91 @@
-import Hash from "@ioc:Adonis/Core/Hash";
 import type { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
 import CreateUserValidator from "App/Validators/CreateUserValidator";
 import User from "../../Models/User";
 
 export default class UsersController {
-  public async index({ response }: HttpContextContract) {
+  public async index() {
     const users = await User.query().preload("children");
-    return response.json(users);
+    return users;
   }
 
-  async store({ request, response }: HttpContextContract) {
-    try {
-      const data = await request.validate(CreateUserValidator);
-      const user = await User.create(data);
-      return user;
-    } catch (error) {
-      return response.badRequest(error.messages.errors[0].message);
-    }
+  async store({ request }: HttpContextContract) {
+    const data = await request.validate(CreateUserValidator);
+    const user = await User.create(data);
+    return user;
   }
 
-  async destroy({ request, response, auth }: HttpContextContract) {
-    const { email, password } = request.all();
-    try {
-      await auth.attempt(email, password);
-      const user = await User.findByOrFail("email", email);
-      await user.delete();
-      return user;
-    } catch {
-      return response.badRequest("Email or password invalid");
+  async destroy({ request, auth }: HttpContextContract) {
+    const { email, password } = request.only(['email', 'password']);
+    if (email == null) {
+      throw new Error("Email is required");
     }
+    if (password == null) {
+      throw new Error("Password is required");
+    }
+    await auth.attempt(email, password);
+    const user = await User.findBy("email", email);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    await user?.delete();
+    return user;
   }
 
-  async changePassword({ request, response, auth }: HttpContextContract) {
-    try {
-      const { email, last_password, new_password } = request.all();
-      await auth.attempt(email, last_password);
-      const user = await User.findByOrFail("email", email);
+  async changePassword({ request, auth }: HttpContextContract) {
+    const { email, last_password, new_password } = request.only([
+      "email",
+      "last_password",
+      "new_password",
+    ]);
 
-      if (!(await Hash.verify(user.password, last_password))) {
-        return response.badRequest("Wrong password");
-      }
-
-      user.password = new_password;
-
-      await user.save();
-
-      return user;
-    } catch {
-      return response.badRequest("Email or password invalid");
+    if (email == "") {
+      throw new Error("Email is required");
     }
+    if (new_password == "") {
+      throw new Error("New password is required");
+    }
+    if (last_password == "") {
+      throw new Error("Last password is required");
+    }
+
+    await auth.attempt(email, last_password);
+
+    if (new_password == last_password) {
+      throw new Error("New password is the same as the last password");
+    }
+    const user = await User.findBy("email", email);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+   
+    await user?.merge({ password: new_password }).save();
+    return user;
   }
 
-  async show({ params, response }: HttpContextContract) {
-    try {
-      const id = params.id;
-      const user = await User.query().where("id", id).preload("children");
-      return user;
-    } catch {
-      return response.badRequest("User not found");
-    }
+  async show({ params }: HttpContextContract) {
+    const user = await User.findBy("id", params.id);
+    if (!user) throw new Error("User not found");
+    await user?.load("children");
+    return user;
   }
 
-  async update({ params, request, response }: HttpContextContract) {
-    try {
-      const id = params.id;
-      const user = await User.findByOrFail("id", id);
-      let { username, email } = request.all();
-      username == null ? (username = user.username) : username;
-      email == null ? (email = user.email) : email;
-      await user.merge({ username, email }).save();
-      return user;
-    } catch {
-      return response.badRequest("Invalid data");
+  async update({ params, request }: HttpContextContract) {
+    const user = await User.findBy("id", params.id);
+
+    if (!user) {
+      throw new Error("User not found");
     }
+
+    let { username, email } = request.only(["username", "email"]);
+
+    if (username == null && email == null) {
+      throw new Error("Username or email is required");
+    }
+    username == null ? (username = user?.username) : username;
+    email == null ? (email = user?.email) : email;
+
+    await user?.merge({ username, email }).save();
+    return user;
   }
 }

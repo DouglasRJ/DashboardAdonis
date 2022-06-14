@@ -26,6 +26,7 @@ export default class CreateChildValidator {
   public schema = schema.create({
     userId: schema.number([
       rules.required(),
+      rules.exists({ table: 'users', column: 'id' })
     ]),
     name: schema.string([
       rules.required(),

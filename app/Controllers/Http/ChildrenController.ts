@@ -9,102 +9,102 @@ import CreateChildValidator from "App/Validators/CreateChildValidator";
 import ChildrenAchievement from "App/Models/ChildrenAchievement";
 
 export default class ChildrenController {
-  async index({ request, response }: HttpContextContract) {
-    try {
-      const children = await Child.all();
-      return children;
-    } catch {
-      return response.badRequest("Invalid data");
-    }
+  async index() {
+    const children = await Child.all();
+    return children;
   }
 
-  async show({ params, request, response }: HttpContextContract) {
-
-    try {
-
-      const child = await Child.find(params.id)
-      await child?.load("miniGames")
-      await child?.load("achievement")
-      return child
-    } catch {
-      return response.badRequest("Invalid data")
+  async show({ params }: HttpContextContract) {
+    const child = await Child.findBy("id", params.id);
+    if (!child) {
+      throw new Error("Child not found");
     }
+    await child?.load("miniGames");
+    await child?.load("achievement");
+    return child;
   }
 
-  async store({ request, response }: HttpContextContract) {
-    try {
-      const { userId } = request.all();
-      await User.findByOrFail("id", userId);
-      const data = await request.validate(CreateChildValidator);
-      const child = await Child.create(data);
-      return child;
-    } catch (error) {
-      return response.badRequest(error.messages.errors[0].message);
-    }
+  async store({ request }: HttpContextContract) {
+    const data = await request.validate(CreateChildValidator);
+    const child = await Child.create(data);
+    return child;
   }
 
-  async destroy({ params, request, response }: HttpContextContract) {
-    try {
-      const { userId } = request.all();
-      await User.findByOrFail("id", userId);
-      const childId = params.id;
-      const child = await Child.findByOrFail("id", childId);
-      await child.delete();
-      return child;
-    } catch {
-      return response.badRequest("Invalid data");
+  async destroy({ params, request }: HttpContextContract) {
+    const { userId } = request.only(["userId"]);
+
+    if (!(await User.findBy("id", userId))) {
+      throw new Error("User not found");
     }
+    const child = await Child.findBy("id", params.id);
+    if (!child) {
+      throw new Error("Child not found");
+    }
+    await child?.delete();
+    return child;
   }
 
-  async update({ params, request, response }: HttpContextContract) {
-    try {
-      const { userId } = request.all();
-      let { name, birth_date } = request.all();
-      await User.findByOrFail("id", userId);
-      const childId = params.id;
-      const child = await Child.findByOrFail("id", childId);
-      name == null ? (name = child.name) : name;
-      birth_date == null ? (birth_date = child.birth_date) : birth_date;
+  async update({ params, request }: HttpContextContract) {
+    const { userId } = request.only(["userId"]);
+    let { name, birth_date } = request.only(["name", "birth_date"]);
 
-      await child.merge({ name, birth_date }).save();
-      return child;
-    } catch {
-      return response.badRequest("Invalid data");
+    if (!(await User.findBy("id", userId))) {
+      throw new Error("User not found");
     }
+
+    const child = await Child.findBy("id", params.id);
+    if (!child) {
+      throw new Error("Child not found");
+    }
+    name == null ? (name = child.name) : name;
+    if (name == child.name) {
+      throw new Error("Name is not changed");
+    }
+    birth_date == null ? (birth_date = child.birth_date) : birth_date;
+    if (birth_date == child.birth_date) {
+      throw new Error("Birth date is not changed");
+    }
+    await child.merge({ name, birth_date }).save();
+    return child;
   }
 
-  async playMiniGame({ params, request, response }: HttpContextContract) {
-    try {
-      const childId = params.childId;
-      await Child.findByOrFail("id", childId);
-      const { miniGameId, play_time } = request.all();
-      await MiniGame.findByOrFail("id", miniGameId);
-      const childrenMiniGame = await ChildrenMiniGame.create({
-        childId,
-        miniGameId,
-        play_time,
-      });
-      User.query();
-      await childrenMiniGame.save();
-      return childrenMiniGame;
-    } catch {
-      return response.badRequest("Invalid data");
+  async playMiniGame({ params, request }: HttpContextContract) {
+    const childId = params.id;
+    if(!(await Child.findBy("id", childId))) {
+      throw new Error("Child not found");
     }
+    const { miniGameId, play_time } = request.only(["miniGameId", "play_time"]);
+    if (!(await MiniGame.findBy("id", miniGameId))) {
+      throw new Error("MiniGame not found");
+    }
+    const childrenMiniGame = await ChildrenMiniGame.create({
+      childId,
+      miniGameId,
+      play_time,
+    });
+    await childrenMiniGame.save();
+    return childrenMiniGame;
   }
 
   async addAchievement({ params, request }: HttpContextContract) {
     const childId = params.childId;
-    await Child.findByOrFail("id", childId);
-    const { miniGameId, achievementId } = request.all();
-    await MiniGame.findByOrFail("id", miniGameId);
-    await Achievement.findByOrFail("id", achievementId);
-
-    const childrenAchievement =
-      await ChildrenAchievement.create({
-        childId,
-        achievementId,
-      });
-
+    if (!(await Child.findBy("id", childId))) {
+      throw new Error("Child not found");
+    }
+    const { miniGameId, achievementId } = request.only([
+      "miniGameId",
+      "achievementId",
+    ]);
+    if (!(await MiniGame.findBy("id", miniGameId))) {
+      throw new Error("MiniGame not found");
+    }
+    if (!(await Achievement.findBy("id", achievementId))) {
+      throw new Error("Achievement not found");
+    }
+    const childrenAchievement = await ChildrenAchievement.create({
+      childId,
+      achievementId,
+    });
     return childrenAchievement;
   }
 }
